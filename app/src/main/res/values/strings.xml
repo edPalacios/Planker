@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Planker</string>
+    <string name="title_home">Home</string>
+    <string name="title_schedule">Schedule</string>
+    <string name="title_calendar">Calendar</string>
+    <string name="completed">Completed</string>
+    <string name="current_task">Curren task</string>
+    <string name="current_date">Current date</string>
+
+</resources>
