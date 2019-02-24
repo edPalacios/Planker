@@ -23,18 +23,16 @@ class Store<S : State<S>, A, E>(
     val currentState: S
 ) {
 
-    val notifyState = { subscribers.forEach { it(currentState) } }
-    val notifyAction = { }
+    val notifyState: Subscriber<S> = { s ->subscribers.forEach { it(s) } }
 
     suspend fun dispatch(action: A) {
         if (action is Action.Ignore) {
             return
         }
-        val effect = reducer(currentState, action)
-        val actions = interpreter(currentState, effect).await()
+        val (newState, effect) = reducer(currentState, action)
+        val actions = interpreter(newState, effect).await()
         actions.forEach {
-            notifyAction()
-            notifyState()
+            notifyState(newState)
             dispatch(it)
         }
     }

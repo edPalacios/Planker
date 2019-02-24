@@ -14,12 +14,23 @@ import com.epf.planker.store.state.HomeState
 import com.epf.planker.subscribers.Subscriber
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.fragment_home.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    val changeScreen: Subscriber<HomeState> = { replaceFragment(it.screen.fragment, it.screen.tag) }
+    val changeScreen: Subscriber<HomeState> = {
+
+        it.screen?.let {screen->
+            replaceFragment(screen.fragment, screen.tag)
+        }
+
+        it.workout?.let { workout ->
+            current_workout.text = workout.name
+        }
+
+    }
     val subscribers = listOf<Subscriber<HomeState>>(changeScreen)
     val state = HomeState()
     val store = Store<HomeState, Action, Effect>(HomeReducer, subscribers, HomeInterpreter, state)
@@ -29,7 +40,10 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         navigation.selectedItemId = R.id.navigation_home
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
-        replaceFragment(HomeFragment(), "homeFragment")
+        GlobalScope.launch {
+            store.dispatch(HomeActions.HomeNavigation.LaunchHome)
+            store.dispatch(HomeActions.HomeWorkout.GetWorkout)
+        }
     }
 
     private val mOnNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->

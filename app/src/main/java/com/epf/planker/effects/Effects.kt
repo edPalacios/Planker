@@ -29,4 +29,10 @@ sealed class HomeEffect : Effect() {
         object ChangeToScheduleScreen: HomeNavigationEffect()
         object ChangeToCalendarScreen: HomeNavigationEffect()
     }
+
+    sealed class HomeWorkoutEffect : HomeEffect() {
+        object Load: HomeWorkoutEffect()
+        object Save: HomeWorkoutEffect()
+        object Delete: HomeWorkoutEffect()
+    }
 }
