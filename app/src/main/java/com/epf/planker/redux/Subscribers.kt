@@ -1,4 +1,4 @@
-package com.epf.planker.subscribers
+package com.epf.planker.redux
 
 /**
  * (S) -> Void

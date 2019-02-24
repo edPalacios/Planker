@@ -1,10 +1,4 @@
-package com.epf.planker.store
-
-import com.epf.planker.actions.Action
-import com.epf.planker.interpreter.Interpreter
-import com.epf.planker.reducers.Reducer
-import com.epf.planker.store.state.State
-import com.epf.planker.subscribers.Subscriber
+package com.epf.planker.redux
 
 /**
  * The store holds the latest version of the (S)tate, dispatches (A)ctions to the reducer,
@@ -26,7 +20,7 @@ class Store<S : State<S>, A, E>(
     val notifyState: Subscriber<S> = { s ->subscribers.forEach { it(s) } }
 
     suspend fun dispatch(action: A) {
-        if (action is Action.Ignore) {
+        if (action is Ignore) {
             return
         }
         val (newState, effect) = reducer(currentState, action)

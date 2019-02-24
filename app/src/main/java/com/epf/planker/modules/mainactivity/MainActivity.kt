@@ -1,39 +1,40 @@
-package com.epf.planker
+package com.epf.planker.modules.mainactivity
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
-import com.epf.planker.actions.Action
-import com.epf.planker.actions.HomeActions
-import com.epf.planker.effects.Effect
-import com.epf.planker.fragments.HomeFragment
-import com.epf.planker.interpreter.HomeInterpreter
-import com.epf.planker.reducers.HomeReducer
-import com.epf.planker.store.Store
-import com.epf.planker.store.state.HomeState
-import com.epf.planker.subscribers.Subscriber
+import com.epf.planker.R
+import com.epf.planker.redux.Action
+import com.epf.planker.redux.Effect
+import com.epf.planker.redux.MainActivityState
+import com.epf.planker.redux.Store
+import com.epf.planker.redux.Subscriber
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.android.synthetic.main.fragment_home.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    val changeScreen: Subscriber<HomeState> = {
+    private val changeScreen: Subscriber<MainActivityState> = {
 
         it.screen?.let {screen->
             replaceFragment(screen.fragment, screen.tag)
         }
 
-        it.workout?.let { workout ->
-            current_workout.text = workout.name
-        }
+//        it.workout?.let { workout ->
+//            current_workout.text = workout.name
+//        }
 
     }
-    val subscribers = listOf<Subscriber<HomeState>>(changeScreen)
-    val state = HomeState()
-    val store = Store<HomeState, Action, Effect>(HomeReducer, subscribers, HomeInterpreter, state)
+    val subscribers = listOf<Subscriber<MainActivityState>>(changeScreen)
+    val state = MainActivityState()
+    val store = Store<MainActivityState, Action, Effect>(
+        MainActivityReducer,
+        subscribers,
+        MainActivityInterpreter,
+        state
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,8 +42,7 @@ class MainActivity : AppCompatActivity() {
         navigation.selectedItemId = R.id.navigation_home
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
         GlobalScope.launch {
-            store.dispatch(HomeActions.HomeNavigation.LaunchHome)
-            store.dispatch(HomeActions.HomeWorkout.GetWorkout)
+            store.dispatch(MainActivityAction.NavigationAction.LaunchHome)
         }
     }
 
@@ -50,19 +50,19 @@ class MainActivity : AppCompatActivity() {
         when (item.itemId) {
             R.id.navigation_home -> {
                 GlobalScope.launch {
-                    store.dispatch(HomeActions.HomeNavigation.LaunchHome)
+                    store.dispatch(MainActivityAction.NavigationAction.LaunchHome)
                 }
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_schedule -> {
                 GlobalScope.launch {
-                    store.dispatch(HomeActions.HomeNavigation.LaunchSchedule)
+                    store.dispatch(MainActivityAction.NavigationAction.LaunchSchedule)
                 }
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_calendar -> {
                 GlobalScope.launch {
-                    store.dispatch(HomeActions.HomeNavigation.LaunchCalendar)
+                    store.dispatch(MainActivityAction.NavigationAction.LaunchCalendar)
                 }
                 return@OnNavigationItemSelectedListener true
             }
