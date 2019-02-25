@@ -41,15 +41,14 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
                 p1.copy(screen = Screen(ScheduleFragment(), "ScheduleFragment")) to None
             }
             is MainActivityAction.NavigationAction.LaunchHome -> {
-                p1.copy(screen = Screen(HomeFragment(), "ScheduleFragment")) to None
+                p1.copy(screen = Screen(HomeFragment(), "HomeFragment")) to None
             }
             is MainActivityAction.NavigationAction.LaunchCalendar -> {
-                p1.copy(screen = Screen(CalendarFragment(), "ScheduleFragment")) to None
+                p1.copy(screen = Screen(CalendarFragment(), "CalendarFragment")) to None
             }
             else -> p1 to None
         }
     }
-
 }
 
 

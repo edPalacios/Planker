@@ -7,12 +7,13 @@ import com.epf.planker.modules.mainactivity.features.base.BaseFragment
 import com.epf.planker.redux.Store
 import com.epf.planker.redux.Subscriber
 import kotlinx.android.synthetic.main.fragment_home.*
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 
 class HomeFragment : BaseFragment() {
     override fun screenLayout(): Int = R.layout.fragment_home
+
+    lateinit var job: Job
 
     private val homeStateSubscriber: Subscriber<HomeState> = {
         it.workout?.let { workout ->
@@ -26,9 +27,14 @@ class HomeFragment : BaseFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        GlobalScope.launch {
+        job = CoroutineScope(Dispatchers.IO).launch {
             store.dispatch(HomeActions.HomeWorkout.Get)
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        job.cancel()
     }
 
 }

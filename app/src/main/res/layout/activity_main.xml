@@ -9,7 +9,7 @@
         tools:context=".modules.mainactivity.MainActivity">
 
     <FrameLayout
-            android:id="@+id/scren_container"
+            android:id="@+id/screen_container"
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
 
