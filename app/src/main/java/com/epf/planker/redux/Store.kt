@@ -11,13 +11,13 @@ package com.epf.planker.redux
  * This is where you would implement storage, logging, network requests, timers, etc...
  */
 class Store<S : State<S>, A, E>(
-    val reducer: Reducer<S, A, E>,
-    val subscribers: List<Subscriber<S>>,
-    val interpreter: Interpreter<S, E, A>,
-    val currentState: S
+    private val reducer: Reducer<S, A, E>,
+    private val interpreter: Interpreter<S, E, A>,
+    private val currentState: S,
+    private var subscribers: List<Subscriber<S>> = emptyList()
 ) {
 
-    val notifyState: Subscriber<S> = { s ->subscribers.forEach { it(s) } }
+    private val notifyState: Subscriber<S> = { s -> subscribers.forEach { it(s) } }
 
     suspend fun dispatch(action: A) {
         if (action is Ignore) {
@@ -32,12 +32,12 @@ class Store<S : State<S>, A, E>(
     }
 
     fun subscribe(subscriber: (S) -> Unit) {
-        subscribers.plus(subscriber)
-        subscriber(currentState)
+        subscribers += subscriber
+//        subscriber(currentState) // TODO decide what to do with this
     }
 
     fun unSubscribe(subscriber: (S) -> Unit) {
-        subscribers.minus(subscriber)
+        subscribers -= subscriber
     }
 }
 

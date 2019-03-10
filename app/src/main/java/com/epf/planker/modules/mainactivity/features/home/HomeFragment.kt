@@ -2,39 +2,32 @@ package com.epf.planker.modules.mainactivity.features.home
 
 import android.os.Bundle
 import android.view.View
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProviders
 import com.epf.planker.R
 import com.epf.planker.modules.mainactivity.features.base.BaseFragment
 import com.epf.planker.redux.Store
-import com.epf.planker.redux.Subscriber
 import kotlinx.android.synthetic.main.fragment_home.*
-import kotlinx.coroutines.*
 
 
 class HomeFragment : BaseFragment() {
+
     override fun screenLayout(): Int = R.layout.fragment_home
 
-    lateinit var job: Job
-
-    private val homeStateSubscriber: Subscriber<HomeState> = {
-        it.workout?.let { workout ->
-            current_workout.text = workout.name
-        }
-
+    private val homeViewModel by lazy {
+        val store = Store(HomeReducer, HomeInterpreter, HomeState())
+        ViewModelProviders.of(this, HomeViewModelFactory(store)).get(HomeViewModel::class.java)
     }
-    private val subscribers = listOf(homeStateSubscriber)
-    private val state = HomeState()
-    private val store = Store(HomeReducer, subscribers, HomeInterpreter, state)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        job = CoroutineScope(Dispatchers.IO).launch {
-            store.dispatch(HomeActions.HomeWorkout.Get)
-        }
+
+        homeViewModel.dispatchHomeWorkoutAction()
+        homeViewModel.workoutLiveData.observe(viewLifecycleOwner, Observer {
+            current_workout.text = it.name
+        })
+
     }
 
-    override fun onStop() {
-        super.onStop()
-        job.cancel()
-    }
 
 }
