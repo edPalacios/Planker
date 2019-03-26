@@ -22,7 +22,6 @@ class HomeFragment : BaseFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        homeViewModel.dispatchHomeWorkoutAction()
         homeViewModel.workoutLiveData.observe(viewLifecycleOwner, Observer {
             current_workout.text = it.name
         })

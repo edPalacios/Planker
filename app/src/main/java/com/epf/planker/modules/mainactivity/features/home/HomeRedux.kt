@@ -1,5 +1,6 @@
 package com.epf.planker.modules.mainactivity.features.home
 
+import android.util.Log
 import com.epf.planker.redux.Action
 import com.epf.planker.redux.Ignore
 import com.epf.planker.redux.Effect
@@ -62,6 +63,7 @@ object HomeInterpreter : Interpreter<HomeState, Effect, Action> {
 
     override fun invoke(p1: HomeState, p2: Effect): Deferred<List<Action>> {
         return GlobalScope.async {
+            Log.d("///////", "Post execution thread:"+Thread.currentThread().name)
             listOf( // TODO this is wrong
                 when (p2) {
                     is HomeEffect.HomeWorkoutEffect.Load -> {

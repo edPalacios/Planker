@@ -28,9 +28,10 @@ class HomeViewModel(private val store: Store<HomeState, Action, Effect>) : ViewM
 
     init {
         store.subscribe(homeStateSubscriber)
+        dispatchHomeWorkoutAction()
     }
 
-    fun dispatchHomeWorkoutAction() {
+    private fun dispatchHomeWorkoutAction() {
         job = CoroutineScope(Dispatchers.Main).launch {
             Log.d("///////", "Post execution thread:" + Thread.currentThread().name)
             store.dispatch(HomeActions.HomeWorkout.Get)
