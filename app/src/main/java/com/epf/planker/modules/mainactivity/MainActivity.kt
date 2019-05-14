@@ -1,6 +1,8 @@
 package com.epf.planker.modules.mainactivity
 
 import android.os.Bundle
+import android.os.Parcel
+import android.os.Parcelable
 import android.util.SparseArray
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -14,12 +16,13 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
 
-    private var savedStateSparseArray = SparseArray<Fragment.SavedState>()
-    private var currentSelectItemId = R.id.navigation_home
+    private var savedStateSparseArray = SparseArray<StackParcelable>()
+    private var currentNavigationTabId = R.id.navigation_home
 
     private var commitId = -1 // TODO refactor
 
@@ -44,18 +47,17 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         if (savedInstanceState != null) { // TODO refactor
-            val sparseParcelableArray =
-                savedInstanceState.getSparseParcelableArray<Fragment.SavedState>(SAVED_STATE_CONTAINER_KEY)
+            val sparseParcelableArray = savedInstanceState.getSparseParcelableArray<StackParcelable>(SAVED_STATE_CONTAINER_KEY)
             if (sparseParcelableArray != null) {
                 savedStateSparseArray = sparseParcelableArray
             }
-            currentSelectItemId = savedInstanceState.getInt(SAVED_STATE_CURRENT_TAB_KEY)
+            currentNavigationTabId = savedInstanceState.getInt(SAVED_STATE_CURRENT_TAB_KEY)
             commitId = savedInstanceState.getInt(SAVED_STATE_CURRENT_COMMIT_ID)
         }
         CoroutineScope(Dispatchers.Main).launch {
             store.dispatch(MainActivityAction.NavigationAction.LaunchHome())
         }
-        navigation.selectedItemId = currentSelectItemId
+        navigation.selectedItemId = currentNavigationTabId
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
 
     }
@@ -87,12 +89,12 @@ class MainActivity : AppCompatActivity() {
 
     // https://github.com/elye/demo_android_fragments_swapping/blob/master/app/src/main/java/com/elyeproj/bottombarfragmentsswitching/MainActivity.kt
     // https://proandroiddev.com/fragments-swapping-with-bottom-bar-ffbd265bd742
-    private fun replaceFragment(screen: Screen) {
+    fun replaceFragment(screen: Screen) {
         val (fragment, tag, currentId) = screen
         val findFragmentByTag = supportFragmentManager.findFragmentByTag(tag)
         if (findFragmentByTag == null) {
             savedFragmentState(screen)
-            fragment.setInitialSavedState(savedStateSparseArray[currentId])
+            fragment.setInitialSavedState(savedStateSparseArray[currentId]?.pollLast())
             commitId = supportFragmentManager.beginTransaction()
                 .replace(R.id.screen_container, fragment, tag)
                 .addToBackStack(tag)
@@ -106,7 +108,7 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putSparseParcelableArray(SAVED_STATE_CONTAINER_KEY, savedStateSparseArray)
-        outState.putInt(SAVED_STATE_CURRENT_TAB_KEY, currentSelectItemId)
+        outState.putInt(SAVED_STATE_CURRENT_TAB_KEY, currentNavigationTabId)
         outState.putInt(SAVED_STATE_CURRENT_COMMIT_ID, commitId)
     }
 
@@ -127,15 +129,17 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun savedFragmentState(screen: Screen) {
-        val (_, _, currentId) = screen
+        val (_, tag, currentId) = screen
         val currentFragment = supportFragmentManager.findFragmentById(R.id.screen_container)
         if (currentFragment != null) {
             savedStateSparseArray.put(
-                currentSelectItemId,
-                supportFragmentManager.saveFragmentInstanceState(currentFragment)
+                currentNavigationTabId,
+                StackParcelable().apply { supportFragmentManager.saveFragmentInstanceState(currentFragment)?.let {
+                    add(it)
+                } }
             )
         }
-        currentSelectItemId = currentId
+        currentNavigationTabId = currentId
     }
 
     companion object {
@@ -147,3 +151,30 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+
+class StackParcelable() : LinkedList<Fragment.SavedState>(), Parcelable {
+
+    constructor(parcel: Parcel) : this() {
+        parcel.readList(this, Fragment.SavedState::class.java.classLoader)
+    }
+
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+      parcel.createTypedArrayList(Fragment.SavedState.CREATOR)
+
+    }
+
+    override fun describeContents(): Int {
+        return 0
+    }
+
+    companion object CREATOR : Parcelable.Creator<StackParcelable> {
+        override fun createFromParcel(parcel: Parcel): StackParcelable {
+            return StackParcelable(parcel)
+        }
+
+        override fun newArray(size: Int): Array<StackParcelable?> {
+            return arrayOfNulls(size)
+        }
+    }
+
+}
