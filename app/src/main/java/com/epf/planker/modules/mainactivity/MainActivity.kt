@@ -28,11 +28,26 @@ class MainActivity : AppCompatActivity() {
 
 
     private val changeScreen: Subscriber<MainActivityState> = {
-        it.screen?.let { screen ->
-            replaceFragment(screen)
+        val (map, currentTabId) = it
+        currentTabId?.let { id ->
+            if (id == -1) {
+                handleOnBack(map[currentNavigationTabId])
+            } else {
+                map[id]?.let { screens ->
+                    replaceFragment(screens.last())
+                }
+            }
         }
-
     }
+
+    private fun handleOnBack(set: Set<Screen>?) {
+        if (set.isNullOrEmpty()) {
+            finish()
+        } else {
+            replaceFragment(set.last())
+        }
+    }
+
     private val subscribers = listOf(changeScreen)
     private val state = MainActivityState()
     private val store = Store(
@@ -47,7 +62,8 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         if (savedInstanceState != null) { // TODO refactor
-            val sparseParcelableArray = savedInstanceState.getSparseParcelableArray<StackParcelable>(SAVED_STATE_CONTAINER_KEY)
+            val sparseParcelableArray =
+                savedInstanceState.getSparseParcelableArray<StackParcelable>(SAVED_STATE_CONTAINER_KEY)
             if (sparseParcelableArray != null) {
                 savedStateSparseArray = sparseParcelableArray
             }
@@ -65,19 +81,21 @@ class MainActivity : AppCompatActivity() {
     private val mOnNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->
         when (item.itemId) {
             R.id.navigation_home -> {
+                currentNavigationTabId = R.id.navigation_home
                 CoroutineScope(Dispatchers.Main).launch {
                     store.dispatch(MainActivityAction.NavigationAction.LaunchHome())
                 }
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_schedule -> {
+                currentNavigationTabId = R.id.navigation_schedule
                 CoroutineScope(Dispatchers.Main).launch {
                     store.dispatch(MainActivityAction.NavigationAction.LaunchSchedule())
                 }
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_calendar -> {
-
+                currentNavigationTabId = R.id.navigation_calendar
                 CoroutineScope(Dispatchers.Main).launch {
                     store.dispatch(MainActivityAction.NavigationAction.LaunchCalendar())
                 }
@@ -90,18 +108,18 @@ class MainActivity : AppCompatActivity() {
     // https://github.com/elye/demo_android_fragments_swapping/blob/master/app/src/main/java/com/elyeproj/bottombarfragmentsswitching/MainActivity.kt
     // https://proandroiddev.com/fragments-swapping-with-bottom-bar-ffbd265bd742
     fun replaceFragment(screen: Screen) {
-        val (fragment, tag, currentId) = screen
-        val findFragmentByTag = supportFragmentManager.findFragmentByTag(tag)
+        val findFragmentByTag = supportFragmentManager.findFragmentByTag(screen.tag)
         if (findFragmentByTag == null) {
             savedFragmentState(screen)
-            fragment.setInitialSavedState(savedStateSparseArray[currentId]?.pollLast())
+            screen.fragment.setInitialSavedState(savedStateSparseArray[screen.currentFragmentId]?.pollLast())
             commitId = supportFragmentManager.beginTransaction()
-                .replace(R.id.screen_container, fragment, tag)
-                .addToBackStack(tag)
+                .replace(R.id.screen_container, screen.fragment, screen.tag)
+                .addToBackStack(screen.tag)
                 .commit()
         } else {
             supportFragmentManager.popBackStack(commitId, 0)
-            supportFragmentManager.beginTransaction().replace(R.id.screen_container, findFragmentByTag, tag).commit()
+            supportFragmentManager.beginTransaction().replace(R.id.screen_container, findFragmentByTag, screen.tag)
+                .commit()
         }
     }
 
@@ -114,32 +132,34 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onBackPressed() {
-        supportFragmentManager.fragments.forEach { fragment ->
-            if (fragment != null && fragment.isVisible) {
-                with(fragment.childFragmentManager) {
-                    if (backStackEntryCount > 0) {
-                        popBackStack()
-                        return
-                    }
-                }
-            }
+//        super.onBackPressed()
+        CoroutineScope(Dispatchers.Main).launch {
+            store.dispatch(MainActivityAction.NavigationAction.OnBack(currentNavigationTabId))
         }
-        super.onBackPressed()
+
     }
 
 
     private fun savedFragmentState(screen: Screen) {
-        val (_, tag, currentId) = screen
         val currentFragment = supportFragmentManager.findFragmentById(R.id.screen_container)
         if (currentFragment != null) {
             savedStateSparseArray.put(
                 currentNavigationTabId,
-                StackParcelable().apply { supportFragmentManager.saveFragmentInstanceState(currentFragment)?.let {
-                    add(it)
-                } }
+                StackParcelable().apply {
+                    supportFragmentManager.saveFragmentInstanceState(currentFragment)?.let {
+                        add(it)
+                    }
+                }
             )
         }
-        currentNavigationTabId = currentId
+        currentNavigationTabId = screen.currentFragmentId
+    }
+
+    fun dispatchFromFragment() {
+        CoroutineScope(Dispatchers.Main).launch {
+            store.dispatch(MainActivityAction.NavigationAction.LaunchHome(rootTabId = currentNavigationTabId))
+
+        }
     }
 
     companion object {
@@ -159,7 +179,7 @@ class StackParcelable() : LinkedList<Fragment.SavedState>(), Parcelable {
     }
 
     override fun writeToParcel(parcel: Parcel, flags: Int) {
-      parcel.createTypedArrayList(Fragment.SavedState.CREATOR)
+        parcel.createTypedArrayList(Fragment.SavedState.CREATOR)
 
     }
 

@@ -12,9 +12,10 @@ import kotlinx.coroutines.async
 
 sealed class MainActivityAction : Action {
     sealed class NavigationAction : MainActivityAction() {
-        class LaunchHome(@IdRes val id: Int = R.id.navigation_home) : NavigationAction()
-        class LaunchCalendar(@IdRes val id: Int = R.id.navigation_calendar) : NavigationAction()
-        class LaunchSchedule(@IdRes val id: Int = R.id.navigation_schedule) : NavigationAction()
+        class LaunchHome(@IdRes val id: Int = R.id.navigation_home, @IdRes val rootTabId: Int = R.id.navigation_home) : NavigationAction()
+        class LaunchCalendar(@IdRes val id: Int = R.id.navigation_calendar, @IdRes val rootTabId: Int = R.id.navigation_calendar) : NavigationAction()
+        class LaunchSchedule(@IdRes val id: Int = R.id.navigation_schedule, @IdRes val rootTabId: Int = R.id.navigation_schedule) : NavigationAction()
+        class OnBack(@IdRes val tabToRemove: Int)   : NavigationAction()
     }
 
 }
@@ -33,23 +34,53 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
     override fun invoke(p1: MainActivityState, p2: Action): Pair<MainActivityState, Effect> {
         return when (p2) {
             is MainActivityAction.NavigationAction.LaunchSchedule -> {
-                p1.copy(screen = Screen(ScheduleFragment(), "ScheduleFragment", p2.id)) to None
+                val fragment =  getFragment(p2.id)
+                val screen = Screen(fragment, "ScheduleFragment", p2.id)
+                val updatedMap = p1.screenMap[p2.rootTabId]?.plus(screen)?: setOf(screen)
+
+                p1.screenMap.put(p2.rootTabId, updatedMap)
+
+                p1.copy(currentTabId = p2.rootTabId) to None
             }
             is MainActivityAction.NavigationAction.LaunchHome -> {
-                p1.copy(screen = Screen(HomeFragment(), "HomeFragment", p2.id)) to None
+                val fragment =  getFragment(p2.id)
+                val screen = Screen(fragment, "HomeFragment", p2.id)
+                val updatedMap = p1.screenMap[p2.rootTabId]?.plus(screen) ?: setOf(screen)
+                p1.screenMap.put(p2.rootTabId, updatedMap)
+
+                p1.copy(currentTabId = p2.rootTabId)  to None
             }
             is MainActivityAction.NavigationAction.LaunchCalendar -> {
-                p1.copy(screen = Screen(CalendarFragment(), "CalendarFragment", p2.id)) to None
+                val fragment =  getFragment(p2.id)
+                val screen = Screen(fragment, "CalendarFragment", p2.id)
+                val updatedMap = p1.screenMap[p2.rootTabId]?.plus(screen)?: setOf(screen)
+                p1.screenMap.put(p2.rootTabId, updatedMap)
+
+                p1.copy(currentTabId = p2.rootTabId)  to None
+            }
+
+            is MainActivityAction.NavigationAction.OnBack -> {
+                val updatedMap = p1.screenMap[p2.tabToRemove].minus(p1.screenMap[p2.tabToRemove].last())
+                p1.screenMap.put(p2.tabToRemove, updatedMap)
+                p1.copy(currentTabId = -1) to None
+
             }
             else -> p1 to None
         }
+    }
+
+    private fun getFragment(@IdRes id: Int) = when (id) {
+        R.id.navigation_home -> HomeFragment()
+        R.id.navigation_schedule -> ScheduleFragment()
+        R.id.navigation_calendar -> CalendarFragment()
+        else -> HomeFragment()
     }
 }
 
 
 object MainActivityInterpreter : Interpreter<MainActivityState, Effect, Action> {
 
-    override fun invoke(p1: MainActivityState, p2: Effect): Deferred<List<Action>> {
+    override fun invoke(p1: MainActivityState, p2: Effect): Deferred<List<Action>> { // TODO this could return state to list of actions
         return GlobalScope.async {
             listOf( // TODO this is wrong
                 when (p2) {
