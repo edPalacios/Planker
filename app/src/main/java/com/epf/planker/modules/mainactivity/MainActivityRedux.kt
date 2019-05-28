@@ -52,7 +52,8 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
             val screen = Screen(fragment, tag, action.id)
             val updatedMap = state.screenMap[action.rootTabId]?.plus(screen) ?: setOf(screen)
             state.screenMap.put(action.rootTabId, updatedMap)
-            state.copy(currentRootTabId = action.rootTabId)
+            val newNavigation = state.navigation.copy(navigationTabId = action.rootTabId)
+            state.copy(navigation = newNavigation)
         }
 
     override fun invoke(p1: MainActivityState, p2: Action): Pair<MainActivityState, Effect> {
@@ -124,7 +125,7 @@ class MainActivityInterpreter(private val navigationManager: NavigationManager) 
                 is FragmentEffect.HandleForwardNavigation -> {
                     listOf(replace(p1))
                 }
-                    is FragmentEffect.HandleBackwardNavigation -> listOf(onBack(p1))
+                is FragmentEffect.HandleBackwardNavigation -> listOf(onBack(p1))
                 else -> {
                     listOf(Ignore)
                 }
@@ -142,44 +143,37 @@ interface NavigationManager {
 
 class NavigationManagerImpl(private val supportFragmentManager: FragmentManager) : NavigationManager {
     override fun onBack(state: MainActivityState): Action {
-        return state.currentRootTabId?.let { id ->
-            if (state.screenMap[id].isNullOrEmpty()) {
-                FragmentAction.Finish
-            } else {
-                replace(state)
-            }
+        return if (state.screenMap[state.navigation.navigationTabId].isNullOrEmpty()) {
+            FragmentAction.Finish
+        } else {
+            replace(state)
+        }
 
-        } ?: throw IllegalArgumentException("given currentRootTabId is null. Cannot perform on back navigation")
     }
 
     override fun replace(state: MainActivityState): Action {
-        return state.currentRootTabId?.let {
-            val screen = state.screenMap[it].last()
+        val screen = state.screenMap[state.navigation.navigationTabId].last()
 
-            val findFragmentByTag = supportFragmentManager.findFragmentByTag(screen.tag)
-            if (findFragmentByTag == null) {
-
-                val (toPersistFragmentState, commitId) = runBlocking(Dispatchers.Main) {
-                    val toPersistFragmentState = savedFragmentState(state)
-                    val toApplySavedState = state.navigation.savedState[screen.fragmentId]?.pollLast()
-                    screen.fragment.setInitialSavedState(toApplySavedState)
-                    val commitId = supportFragmentManager.beginTransaction()
-                        .replace(R.id.screen_container, screen.fragment, screen.tag)
-                        .addToBackStack(screen.tag)
-                        .commit()
-                    toPersistFragmentState to commitId
-                }
-
-                FragmentAction.SaveState(Triple(toPersistFragmentState, screen.fragmentId, commitId))
-
-            } else {
-                supportFragmentManager.popBackStack(state.navigation.commitId, 0)
-                supportFragmentManager.beginTransaction().replace(R.id.screen_container, findFragmentByTag, screen.tag)
+        val findFragmentByTag = supportFragmentManager.findFragmentByTag(screen.tag)
+        return if (findFragmentByTag == null) {
+            val (toPersistFragmentState, commitId) = runBlocking(Dispatchers.Main) {
+                val toPersistFragmentState = savedFragmentState(state)
+                val toApplySavedState = state.navigation.savedState[screen.fragmentId]?.pollLast()
+                screen.fragment.setInitialSavedState(toApplySavedState)
+                val commitId = supportFragmentManager.beginTransaction()
+                    .replace(R.id.screen_container, screen.fragment, screen.tag)
+                    .addToBackStack(screen.tag)
                     .commit()
-                Ignore
+                toPersistFragmentState to commitId
             }
-        } ?: Ignore
-
+            FragmentAction.SaveState(Triple(toPersistFragmentState, screen.fragmentId, commitId))
+        } else {
+            supportFragmentManager.popBackStack(state.navigation.commitId, 0)
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.screen_container, findFragmentByTag, screen.tag)
+                .commit()
+            Ignore
+        }
     }
 
     private fun savedFragmentState(state: MainActivityState): Fragment.SavedState? {

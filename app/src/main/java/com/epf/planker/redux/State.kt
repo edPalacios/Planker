@@ -11,7 +11,6 @@ interface State<S>
 
 data class MainActivityState(
     val screenMap: SparseArray<Set<Screen>> = SparseArray(),
-    @IdRes val currentRootTabId: Int? = null,
     val navigation: Navigation = Navigation()
 ) : State<MainActivityState>
 
