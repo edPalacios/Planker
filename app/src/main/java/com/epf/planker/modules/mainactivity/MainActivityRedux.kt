@@ -16,17 +16,12 @@ sealed class FragmentAction : Action {
 }
 
 sealed class MainActivityAction : Action {
-    sealed class NavigationAction(@IdRes val id: Int, @IdRes val rootTabId: Int) : MainActivityAction() {
-        class LaunchHome(@IdRes id: Int = R.id.navigation_home, @IdRes rootTabId: Int = R.id.navigation_home) :
-            NavigationAction(id, rootTabId)
-
-        class LaunchCalendar(@IdRes id: Int = R.id.navigation_calendar, @IdRes rootTabId: Int = R.id.navigation_calendar) :
-            NavigationAction(id, rootTabId)
-
-        class LaunchSchedule(@IdRes id: Int = R.id.navigation_schedule, @IdRes rootTabId: Int = R.id.navigation_schedule) :
-            NavigationAction(id, rootTabId)
-
-        class OnBack(@IdRes val tabToRemove: Int) : NavigationAction(-1, -1)
+    sealed class NavigationAction(@IdRes val fragmentId: Int, @IdRes val rootNavigationId: Int?) : MainActivityAction() {
+        object LaunchHome : NavigationAction(R.id.navigation_home, R.id.navigation_home)
+        object LaunchCalendar : NavigationAction(R.id.navigation_calendar, R.id.navigation_calendar)
+        object LaunchSchedule : NavigationAction(R.id.navigation_schedule, R.id.navigation_calendar)
+        object OnBack : NavigationAction(-1, -1)
+        class LaunchInTab(toOpenId: Int): NavigationAction(toOpenId, null)
     }
 
 }
@@ -48,15 +43,21 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
 
     private val reduce: (String, MainActivityState, MainActivityAction.NavigationAction) -> MainActivityState =
         { tag, state, action ->
-            val fragment = getFragment(action.id)
-            val screen = Screen(fragment, tag, action.id)
-            val updatedMap = state.screenMap[action.rootTabId]?.plus(screen) ?: setOf(screen)
-            state.screenMap.put(action.rootTabId, updatedMap)
-            val newNavigation = state.navigation.copy(navigationTabId = action.rootTabId)
+            val fragment = getFragment(action.fragmentId)
+            val screen = Screen(fragment, tag, action.fragmentId)
+            val currentTabId = when{
+                state.navigation.navigationTabId == 1 && action.rootNavigationId != null -> action.rootNavigationId
+                action.rootNavigationId == null -> state.navigation.navigationTabId
+                else -> action.fragmentId
+            }
+            val updatedMap = state.screenMap[currentTabId]?.plus(screen) ?: setOf(screen)
+            state.screenMap.put(currentTabId, updatedMap)
+            val newNavigation = state.navigation.copy(navigationTabId = currentTabId)
             state.copy(navigation = newNavigation)
         }
 
     override fun invoke(p1: MainActivityState, p2: Action): Pair<MainActivityState, Effect> {
+        val navigationTabId = p1.navigation.navigationTabId
         return when (p2) {
             is MainActivityAction.NavigationAction.LaunchSchedule -> reduce(
                 "ScheduleFragment",
@@ -69,20 +70,22 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
                 p2
             ) to FragmentEffect.HandleForwardNavigation
             is MainActivityAction.NavigationAction.LaunchCalendar -> reduce(
-                "CalendarFragment", p1, p2
+                "CalendarFragment",
+                p1,
+                p2
             ) to FragmentEffect.HandleForwardNavigation
+            is MainActivityAction.NavigationAction.LaunchInTab -> reduce("AnotherFragment", p1,p2) to FragmentEffect.HandleForwardNavigation
             is MainActivityAction.NavigationAction.OnBack -> {
-                val updatedMap = p1.screenMap[p2.tabToRemove].minus(p1.screenMap[p2.tabToRemove].last())
-                p1.screenMap.put(p2.tabToRemove, updatedMap)
+                val updatedMap = p1.screenMap[navigationTabId].minus(p1.screenMap[navigationTabId].last())
+                p1.screenMap.put(navigationTabId, updatedMap)
                 p1 to FragmentEffect.HandleBackwardNavigation
 
             }
 
             is FragmentAction.SaveState -> {
                 val (savedState, fragmentId, commitId) = p2.newSavedState
-
                 p1.navigation.savedState.put(
-                    p1.navigation.navigationTabId,
+                    navigationTabId,
                     StackParcelable().apply {
                         savedState?.let {
                             add(it)
