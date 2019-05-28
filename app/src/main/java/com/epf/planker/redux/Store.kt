@@ -1,5 +1,8 @@
 package com.epf.planker.redux
 
+import com.epf.planker.modules.mainactivity.MainActivityAction
+import kotlinx.coroutines.*
+
 /**
  * The store holds the latest version of the (S)tate, dispatches (A)ctions to the reducer,
  * notifies subscribers when the (S)tate changes, and calls the interpreter with any (E)ffects that are produced.
@@ -13,7 +16,7 @@ package com.epf.planker.redux
 class Store<S : State<S>, A, E>(
     private val reducer: Reducer<S, A, E>,
     private val interpreter: Interpreter<S, E, A>,
-    private val currentState: S,
+    private var currentState: S,
     private var subscribers: List<Subscriber<S>> = emptyList()
 ) {
 
@@ -27,6 +30,7 @@ class Store<S : State<S>, A, E>(
         val actions = interpreter(newState, effect).await()
         actions.forEach {
             notifyState(newState)
+            currentState = newState
             dispatch(it)
         }
     }
@@ -39,5 +43,13 @@ class Store<S : State<S>, A, E>(
     fun unSubscribe(subscriber: (S) -> Unit) {
         subscribers -= subscriber
     }
+
+    fun run(action: A) = CoroutineScope(Dispatchers.Main).launch {
+        dispatch(action)
+    }
 }
 
+
+fun runSync(job: () -> Unit) = runBlocking {
+    job()
+}

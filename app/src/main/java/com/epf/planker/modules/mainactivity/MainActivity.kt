@@ -8,7 +8,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.epf.planker.R
 import com.epf.planker.redux.MainActivityState
-import com.epf.planker.redux.Screen
 import com.epf.planker.redux.Store
 import com.epf.planker.redux.Subscriber
 import com.google.android.material.bottomnavigation.BottomNavigationView
@@ -28,23 +27,8 @@ class MainActivity : AppCompatActivity() {
 
 
     private val changeScreen: Subscriber<MainActivityState> = {
-        val (map, currentTabId) = it
-        currentTabId?.let { id ->
-            if (id == -1) {
-                handleOnBack(map[currentNavigationTabId])
-            } else {
-                map[id]?.let { screens ->
-                    replaceFragment(screens.last())
-                }
-            }
-        }
-    }
-
-    private fun handleOnBack(set: Set<Screen>?) {
-        if (set.isNullOrEmpty()) {
+        if (it.navigation.finish) {
             finish()
-        } else {
-            replaceFragment(set.last())
         }
     }
 
@@ -52,7 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val state = MainActivityState()
     private val store = Store(
         MainActivityReducer,
-        MainActivityInterpreter,
+        MainActivityInterpreter(NavigationManagerImpl(supportFragmentManager)),
         state,
         subscribers
     )
@@ -105,24 +89,6 @@ class MainActivity : AppCompatActivity() {
         false
     }
 
-    // https://github.com/elye/demo_android_fragments_swapping/blob/master/app/src/main/java/com/elyeproj/bottombarfragmentsswitching/MainActivity.kt
-    // https://proandroiddev.com/fragments-swapping-with-bottom-bar-ffbd265bd742
-    fun replaceFragment(screen: Screen) {
-        val findFragmentByTag = supportFragmentManager.findFragmentByTag(screen.tag)
-        if (findFragmentByTag == null) {
-            savedFragmentState(screen)
-            screen.fragment.setInitialSavedState(savedStateSparseArray[screen.currentFragmentId]?.pollLast())
-            commitId = supportFragmentManager.beginTransaction()
-                .replace(R.id.screen_container, screen.fragment, screen.tag)
-                .addToBackStack(screen.tag)
-                .commit()
-        } else {
-            supportFragmentManager.popBackStack(commitId, 0)
-            supportFragmentManager.beginTransaction().replace(R.id.screen_container, findFragmentByTag, screen.tag)
-                .commit()
-        }
-    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putSparseParcelableArray(SAVED_STATE_CONTAINER_KEY, savedStateSparseArray)
@@ -132,28 +98,13 @@ class MainActivity : AppCompatActivity() {
 
 
     override fun onBackPressed() {
-//        super.onBackPressed()
+//        super.onBackPressed() // ignored:  we handle manually onBack
         CoroutineScope(Dispatchers.Main).launch {
             store.dispatch(MainActivityAction.NavigationAction.OnBack(currentNavigationTabId))
         }
 
     }
 
-
-    private fun savedFragmentState(screen: Screen) {
-        val currentFragment = supportFragmentManager.findFragmentById(R.id.screen_container)
-        if (currentFragment != null) {
-            savedStateSparseArray.put(
-                currentNavigationTabId,
-                StackParcelable().apply {
-                    supportFragmentManager.saveFragmentInstanceState(currentFragment)?.let {
-                        add(it)
-                    }
-                }
-            )
-        }
-        currentNavigationTabId = screen.currentFragmentId
-    }
 
     fun dispatchFromFragment() {
         CoroutineScope(Dispatchers.Main).launch {
