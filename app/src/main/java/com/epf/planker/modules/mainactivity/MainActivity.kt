@@ -11,9 +11,6 @@ import com.epf.planker.redux.Store
 import com.epf.planker.redux.Subscriber
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.util.*
 
 
@@ -38,9 +35,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        CoroutineScope(Dispatchers.Main).launch {
-            store.dispatch(MainActivityAction.NavigationAction.LaunchHome)
-        }
+        store.run(MainActivityAction.NavigationAction.LaunchHome)
+
         navigation.selectedItemId = R.id.navigation_home
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
 
@@ -49,44 +45,29 @@ class MainActivity : AppCompatActivity() {
     private val mOnNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->
         when (item.itemId) {
             R.id.navigation_home -> {
-                CoroutineScope(Dispatchers.Main).launch {
-                    store.dispatch(MainActivityAction.NavigationAction.LaunchHome)
-                }
+                store.run(MainActivityAction.NavigationAction.LaunchHome)
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_schedule -> {
-                CoroutineScope(Dispatchers.Main).launch {
-                    store.dispatch(MainActivityAction.NavigationAction.LaunchSchedule)
-                }
+                store.run(MainActivityAction.NavigationAction.LaunchSchedule)
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_calendar -> {
-                CoroutineScope(Dispatchers.Main).launch {
-                    store.dispatch(MainActivityAction.NavigationAction.LaunchCalendar)
-                }
+                store.run(MainActivityAction.NavigationAction.LaunchCalendar)
                 return@OnNavigationItemSelectedListener true
             }
         }
         false
     }
 
-
     override fun onBackPressed() {
 //        super.onBackPressed() // ignored:  we handle manually onBack
-        CoroutineScope(Dispatchers.Main).launch {
-            store.dispatch(MainActivityAction.NavigationAction.OnBack)
-        }
-
+        store.run(MainActivityAction.NavigationAction.OnBack)
     }
-
 
     fun dispatchFromFragment() {
-        CoroutineScope(Dispatchers.Main).launch {
-            store.dispatch(MainActivityAction.NavigationAction.LaunchInTab(R.id.navigation_home))
-
-        }
+        store.run(MainActivityAction.NavigationAction.LaunchInTab(R.id.navigation_home))
     }
-
 }
 
 
