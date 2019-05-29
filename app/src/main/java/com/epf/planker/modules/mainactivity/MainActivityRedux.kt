@@ -16,36 +16,31 @@ sealed class FragmentAction : Action {
 }
 
 sealed class MainActivityAction : Action {
-    sealed class NavigationAction(@IdRes val fragmentId: Int, @IdRes val rootNavigationId: Int?) : MainActivityAction() {
+    sealed class NavigationAction(@IdRes val fragmentId: Int, @IdRes val rootNavigationId: Int?) :
+        MainActivityAction() {
         object LaunchHomeTab : NavigationAction(R.id.navigation_home, R.id.navigation_home)
         object LaunchCalendarTab : NavigationAction(R.id.navigation_calendar, R.id.navigation_calendar)
         object LaunchScheduleTab : NavigationAction(R.id.navigation_schedule, R.id.navigation_calendar)
         object OnBack : NavigationAction(-1, -1)
-        class LaunchInTab(toOpenId: Int): NavigationAction(toOpenId, null)
+        class LaunchInTab(toOpenId: Int) : NavigationAction(toOpenId, null)
     }
 
 }
 
 sealed class MainActivityEffect : Effect {
     sealed class NavigationEffect : MainActivityEffect() {
-        object ChangeToHomeScreen : NavigationEffect()
-        object ChangeToScheduleScreen : NavigationEffect()
-        object ChangeToCalendarScreen : NavigationEffect()
+        object HandleForwardNavigation : NavigationEffect()
+        object HandleBackwardNavigation : NavigationEffect()
     }
-}
-
-sealed class FragmentEffect : Effect {
-    object HandleForwardNavigation : Effect
-    object HandleBackwardNavigation : Effect
 }
 
 object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
 
-    private val reduce: (String, MainActivityState, MainActivityAction.NavigationAction) -> MainActivityState =
+    private val reduce: (String, MainActivityState, MainActivityAction.NavigationAction) -> Pair<MainActivityState, MainActivityEffect.NavigationEffect> =
         { tag, state, action ->
             val fragment = getFragment(action.fragmentId)
             val screen = Screen(fragment, tag, action.fragmentId)
-            val currentTabId = when{
+            val currentTabId = when {
                 state.navigation.navigationTabId == 1 && action.rootNavigationId != null -> action.rootNavigationId
                 action.rootNavigationId == null -> state.navigation.navigationTabId
                 else -> action.fragmentId
@@ -53,32 +48,20 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
             val updatedMap = state.screenMap[currentTabId]?.plus(screen) ?: setOf(screen)
             state.screenMap.put(currentTabId, updatedMap)
             val newNavigation = state.navigation.copy(navigationTabId = currentTabId)
-            state.copy(navigation = newNavigation)
+            state.copy(navigation = newNavigation) to MainActivityEffect.NavigationEffect.HandleForwardNavigation
         }
 
     override fun invoke(p1: MainActivityState, p2: Action): Pair<MainActivityState, Effect> {
         val navigationTabId = p1.navigation.navigationTabId
         return when (p2) {
-            is MainActivityAction.NavigationAction.LaunchScheduleTab -> reduce(
-                "ScheduleFragment",
-                p1,
-                p2
-            ) to FragmentEffect.HandleForwardNavigation
-            is MainActivityAction.NavigationAction.LaunchHomeTab -> reduce(
-                "HomeFragment",
-                p1,
-                p2
-            ) to FragmentEffect.HandleForwardNavigation
-            is MainActivityAction.NavigationAction.LaunchCalendarTab -> reduce(
-                "CalendarFragment",
-                p1,
-                p2
-            ) to FragmentEffect.HandleForwardNavigation
-            is MainActivityAction.NavigationAction.LaunchInTab -> reduce("AnotherFragment", p1,p2) to FragmentEffect.HandleForwardNavigation
+            is MainActivityAction.NavigationAction.LaunchScheduleTab -> reduce("ScheduleFragment", p1, p2)
+            is MainActivityAction.NavigationAction.LaunchHomeTab -> reduce("HomeFragment", p1, p2)
+            is MainActivityAction.NavigationAction.LaunchCalendarTab -> reduce("CalendarFragment", p1, p2)
+            is MainActivityAction.NavigationAction.LaunchInTab -> reduce("AnotherFragment", p1, p2)
             is MainActivityAction.NavigationAction.OnBack -> {
                 val updatedMap = p1.screenMap[navigationTabId].minus(p1.screenMap[navigationTabId].last())
                 p1.screenMap.put(navigationTabId, updatedMap)
-                p1 to FragmentEffect.HandleBackwardNavigation
+                p1 to MainActivityEffect.NavigationEffect.HandleBackwardNavigation
 
             }
 
@@ -97,9 +80,7 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
                 p1.copy(navigation = navigation) to None
             }
 
-            is FragmentAction.Finish -> {
-                p1.copy(navigation = p1.navigation.copy(finish = true)) to None
-            }
+            is FragmentAction.Finish -> p1.copy(navigation = p1.navigation.copy(finish = true)) to None
             else -> p1 to None
         }
     }
@@ -120,18 +101,14 @@ class MainActivityInterpreter(private val navigationManager: NavigationManager) 
         p1: MainActivityState,
         p2: Effect
     ): Deferred<List<Action>> {
-
-        fun runGloalAsync(job: () -> Unit) = GlobalScope.async { job }
-
         return GlobalScope.async {
             when (p2) {
-                is FragmentEffect.HandleForwardNavigation -> listOf(replace(p1))
-                is FragmentEffect.HandleBackwardNavigation -> listOf(onBack(p1))
+                is MainActivityEffect.NavigationEffect.HandleForwardNavigation -> listOf(replace(p1))
+                is MainActivityEffect.NavigationEffect.HandleBackwardNavigation -> listOf(onBack(p1))
                 else -> listOf(Ignore)
             }
         }
     }
-
 }
 
 
@@ -156,7 +133,7 @@ class NavigationManagerImpl(private val supportFragmentManager: FragmentManager)
         val findFragmentByTag = supportFragmentManager.findFragmentByTag(screen.tag)
         return if (findFragmentByTag == null) {
             val (toPersistFragmentState, commitId) = runBlocking(Dispatchers.Main) {
-                val toPersistFragmentState = savedFragmentState(state)
+                val toPersistFragmentState = savedFragmentState()
                 val toApplySavedState = state.navigation.savedState[screen.fragmentId]?.pollLast()
                 screen.fragment.setInitialSavedState(toApplySavedState)
                 val commitId = supportFragmentManager.beginTransaction()
@@ -175,8 +152,7 @@ class NavigationManagerImpl(private val supportFragmentManager: FragmentManager)
         }
     }
 
-    private fun savedFragmentState(state: MainActivityState): Fragment.SavedState? {
-        //todo this method returns StackParcelable with saved state and currentNavigationTabId
+    private fun savedFragmentState(): Fragment.SavedState? {
         val currentFragment = supportFragmentManager.findFragmentById(R.id.screen_container)
         return currentFragment?.let {
             supportFragmentManager.saveFragmentInstanceState(currentFragment)
