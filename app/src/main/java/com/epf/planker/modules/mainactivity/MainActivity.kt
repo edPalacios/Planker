@@ -35,7 +35,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        store.run(MainActivityAction.NavigationAction.LaunchHome)
+        store.run(MainActivityAction.NavigationAction.LaunchHomeTab)
 
         navigation.selectedItemId = R.id.navigation_home
         navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener)
@@ -45,15 +45,15 @@ class MainActivity : AppCompatActivity() {
     private val mOnNavigationItemSelectedListener = BottomNavigationView.OnNavigationItemSelectedListener { item ->
         when (item.itemId) {
             R.id.navigation_home -> {
-                store.run(MainActivityAction.NavigationAction.LaunchHome)
+                store.run(MainActivityAction.NavigationAction.LaunchHomeTab)
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_schedule -> {
-                store.run(MainActivityAction.NavigationAction.LaunchSchedule)
+                store.run(MainActivityAction.NavigationAction.LaunchScheduleTab)
                 return@OnNavigationItemSelectedListener true
             }
             R.id.navigation_calendar -> {
-                store.run(MainActivityAction.NavigationAction.LaunchCalendar)
+                store.run(MainActivityAction.NavigationAction.LaunchCalendarTab)
                 return@OnNavigationItemSelectedListener true
             }
         }

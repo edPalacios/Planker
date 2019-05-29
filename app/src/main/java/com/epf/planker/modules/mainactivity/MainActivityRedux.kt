@@ -17,9 +17,9 @@ sealed class FragmentAction : Action {
 
 sealed class MainActivityAction : Action {
     sealed class NavigationAction(@IdRes val fragmentId: Int, @IdRes val rootNavigationId: Int?) : MainActivityAction() {
-        object LaunchHome : NavigationAction(R.id.navigation_home, R.id.navigation_home)
-        object LaunchCalendar : NavigationAction(R.id.navigation_calendar, R.id.navigation_calendar)
-        object LaunchSchedule : NavigationAction(R.id.navigation_schedule, R.id.navigation_calendar)
+        object LaunchHomeTab : NavigationAction(R.id.navigation_home, R.id.navigation_home)
+        object LaunchCalendarTab : NavigationAction(R.id.navigation_calendar, R.id.navigation_calendar)
+        object LaunchScheduleTab : NavigationAction(R.id.navigation_schedule, R.id.navigation_calendar)
         object OnBack : NavigationAction(-1, -1)
         class LaunchInTab(toOpenId: Int): NavigationAction(toOpenId, null)
     }
@@ -59,17 +59,17 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
     override fun invoke(p1: MainActivityState, p2: Action): Pair<MainActivityState, Effect> {
         val navigationTabId = p1.navigation.navigationTabId
         return when (p2) {
-            is MainActivityAction.NavigationAction.LaunchSchedule -> reduce(
+            is MainActivityAction.NavigationAction.LaunchScheduleTab -> reduce(
                 "ScheduleFragment",
                 p1,
                 p2
             ) to FragmentEffect.HandleForwardNavigation
-            is MainActivityAction.NavigationAction.LaunchHome -> reduce(
+            is MainActivityAction.NavigationAction.LaunchHomeTab -> reduce(
                 "HomeFragment",
                 p1,
                 p2
             ) to FragmentEffect.HandleForwardNavigation
-            is MainActivityAction.NavigationAction.LaunchCalendar -> reduce(
+            is MainActivityAction.NavigationAction.LaunchCalendarTab -> reduce(
                 "CalendarFragment",
                 p1,
                 p2
@@ -125,13 +125,9 @@ class MainActivityInterpreter(private val navigationManager: NavigationManager) 
 
         return GlobalScope.async {
             when (p2) {
-                is FragmentEffect.HandleForwardNavigation -> {
-                    listOf(replace(p1))
-                }
+                is FragmentEffect.HandleForwardNavigation -> listOf(replace(p1))
                 is FragmentEffect.HandleBackwardNavigation -> listOf(onBack(p1))
-                else -> {
-                    listOf(Ignore)
-                }
+                else -> listOf(Ignore)
             }
         }
     }
