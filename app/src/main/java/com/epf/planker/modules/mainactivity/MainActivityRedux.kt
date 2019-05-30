@@ -12,7 +12,7 @@ import kotlinx.coroutines.*
 
 sealed class FragmentAction : Action {
     object Finish : FragmentAction()
-    class SaveState(val newSavedState: Triple<Fragment.SavedState?, Int, Int>) : FragmentAction()
+    class SaveState(val newSavedState: Pair<Fragment.SavedState?, Int>) : FragmentAction()
 }
 
 sealed class MainActivityAction : Action {
@@ -66,7 +66,7 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
             }
 
             is FragmentAction.SaveState -> {
-                val (savedState, fragmentId, commitId) = p2.newSavedState
+                val (savedState, commitId) = p2.newSavedState
                 p1.navigation.savedState.put(
                     navigationTabId,
                     StackParcelable().apply {
@@ -76,7 +76,7 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
                     }
                 )
 
-                val navigation = p1.navigation.copy(navigationTabId = fragmentId, commitId = commitId)
+                val navigation = p1.navigation.copy(commitId = commitId)
                 p1.copy(navigation = navigation) to None
             }
 
@@ -142,7 +142,7 @@ class NavigationManagerImpl(private val supportFragmentManager: FragmentManager)
                     .commit()
                 toPersistFragmentState to commitId
             }
-            FragmentAction.SaveState(Triple(toPersistFragmentState, screen.fragmentId, commitId))
+            FragmentAction.SaveState(toPersistFragmentState to commitId)
         } else {
             supportFragmentManager.popBackStack(state.navigation.commitId, 0)
             supportFragmentManager.beginTransaction()
