@@ -41,9 +41,8 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
             val fragment = getFragment(action.fragmentId)
             val screen = Screen(fragment, tag, action.fragmentId)
             val currentTabId = when {
-                state.navigation.navigationTabId == -1 && action.rootNavigationId != null -> action.rootNavigationId
                 action.rootNavigationId == null -> state.navigation.navigationTabId
-                else -> action.fragmentId
+                else -> action.rootNavigationId
             }
             val updatedMap = state.screenMap[currentTabId]?.plus(screen) ?: setOf(screen)
             state.screenMap.put(currentTabId, updatedMap)
