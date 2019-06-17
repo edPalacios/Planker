@@ -1,7 +1,9 @@
 package com.epf.planker.redux
 
-import com.epf.planker.modules.mainactivity.MainActivityAction
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * The store holds the latest version of the (S)tate, dispatches (A)ctions to the reducer,
@@ -22,17 +24,21 @@ class Store<S : State<S>, A, E>(
 
     private val notifyState: Subscriber<S> = { s -> subscribers.forEach { it(s) } }
 
-    suspend fun dispatch(action: A) {
-        if (action is Ignore) {
+    tailrec suspend fun dispatch(action: A, pendingActions: List<A>? = null) {
+        if (action is Ignore && pendingActions.isNullOrEmpty()) {
             return
         }
-        val (newState, effect) = reducer(currentState, action)
+
+        val actionToProcess = if (action is Ignore) pendingActions?.firstOrNull() ?: return else action
+
+        val (newState, effect) = reducer(currentState, actionToProcess)
         val actions = interpreter(newState, effect).await()
-        actions.forEach {
-            notifyState(newState)
-            currentState = newState
-            dispatch(it)
-        }
+
+        notifyState(newState)
+        currentState = newState
+
+
+        dispatch(actions.first(), actions.drop(1))
     }
 
     fun subscribe(subscriber: (S) -> Unit) {

@@ -8,10 +8,7 @@ import com.epf.planker.redux.None
 import com.epf.planker.redux.Interpreter
 import com.epf.planker.redux.Reducer
 import com.epf.planker.redux.State
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 
 data class HomeState(val workout: Workout? = null) : State<HomeState>
 
@@ -62,9 +59,9 @@ object HomeReducer : Reducer<HomeState, Action, Effect> {
 object HomeInterpreter : Interpreter<HomeState, Effect, Action> {
 
     override fun invoke(p1: HomeState, p2: Effect): Deferred<List<Action>> {
-        return GlobalScope.async {
+        return CoroutineScope(Dispatchers.IO).async {
             Log.d("///////", "Post execution thread:"+Thread.currentThread().name)
-            listOf( // TODO this is wrong
+            listOf(
                 when (p2) {
                     is HomeEffect.HomeWorkoutEffect.Load -> {
                         println("////// start loading workout")

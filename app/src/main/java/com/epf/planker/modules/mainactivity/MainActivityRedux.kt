@@ -101,7 +101,7 @@ class MainActivityInterpreter(private val navigationManager: NavigationManager) 
         p1: MainActivityState,
         p2: Effect
     ): Deferred<List<Action>> {
-        return GlobalScope.async {
+        return CoroutineScope(Dispatchers.IO).async {
             when (p2) {
                 is MainActivityEffect.NavigationEffect.HandleForwardNavigation -> listOf(replace(p1))
                 is MainActivityEffect.NavigationEffect.HandleBackwardNavigation -> listOf(onBack(p1))
