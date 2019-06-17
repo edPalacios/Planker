@@ -25,11 +25,11 @@ class Store<S : State<S>, A, E>(
     private val notifyState: Subscriber<S> = { s -> subscribers.forEach { it(s) } }
 
     tailrec suspend fun dispatch(action: A, pendingActions: List<A>? = null) {
-        if (action is Ignore && pendingActions.isNullOrEmpty()) {
+        if (action is EndOfFlow && pendingActions.isNullOrEmpty()) {
             return
         }
 
-        val actionToProcess = if (action is Ignore) pendingActions?.firstOrNull() ?: return else action
+        val actionToProcess = if (action is EndOfFlow) pendingActions?.firstOrNull() ?: return else action
 
         val (newState, effect) = reducer(currentState, actionToProcess)
         val actions = interpreter(newState, effect).await()

@@ -8,4 +8,4 @@ package com.epf.planker.redux
 
 interface Action
 
-object Ignore : Action
+object EndOfFlow : Action

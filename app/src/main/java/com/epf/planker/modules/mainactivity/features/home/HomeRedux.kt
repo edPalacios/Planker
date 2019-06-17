@@ -2,7 +2,7 @@ package com.epf.planker.modules.mainactivity.features.home
 
 import android.util.Log
 import com.epf.planker.redux.Action
-import com.epf.planker.redux.Ignore
+import com.epf.planker.redux.EndOfFlow
 import com.epf.planker.redux.Effect
 import com.epf.planker.redux.None
 import com.epf.planker.redux.Interpreter
@@ -76,7 +76,7 @@ object HomeInterpreter : Interpreter<HomeState, Effect, Action> {
                         )
                     }
                     else -> {
-                        Ignore
+                        EndOfFlow
                     }
                 }
             )

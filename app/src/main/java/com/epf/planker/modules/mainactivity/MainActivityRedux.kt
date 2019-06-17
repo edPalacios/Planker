@@ -105,7 +105,7 @@ class MainActivityInterpreter(private val navigationManager: NavigationManager) 
             when (p2) {
                 is MainActivityEffect.NavigationEffect.HandleForwardNavigation -> listOf(replace(p1))
                 is MainActivityEffect.NavigationEffect.HandleBackwardNavigation -> listOf(onBack(p1))
-                else -> listOf(Ignore)
+                else -> listOf(EndOfFlow)
             }
         }
     }
@@ -150,7 +150,7 @@ class NavigationManagerImpl(private val supportFragmentManager: FragmentManager)
                 .setCustomAnimations(R.anim.enter_from_left, R.anim.exit_to_right)
                 .replace(R.id.screen_container, findFragmentByTag, screen.tag)
                 .commit()
-            Ignore
+            EndOfFlow
         }
     }
 
