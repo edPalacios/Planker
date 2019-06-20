@@ -13,16 +13,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-
 class HomeViewModel(private val store: Store<HomeState, Action, Effect>) : ViewModel() {
 
     val workoutLiveData = MutableLiveData<Workout>()
 
     lateinit var job: Job
 
-    private val homeStateSubscriber: Subscriber<HomeState> = {
-        it.workout?.let { workout ->
-            workoutLiveData.value = workout
+    private val homeStateSubscriber: Subscriber<HomeState> = { state, renderAction ->
+        when (renderAction) {
+            is HomeRenderAction.UpdateWorkout -> {
+                state.workout?.let { workout ->
+                    workoutLiveData.value = workout
+                }
+            }
         }
     }
 

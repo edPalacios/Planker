@@ -14,8 +14,10 @@ class ScheduleFragment : BaseFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         add_new_screen_button.setOnClickListener {
-            val a  = activity as MainActivity
+            val a = activity as MainActivity
             a.dispatchFromFragment()
+
+            // TODO this screen show the activities for the day: list of items with image
         }
     }
 

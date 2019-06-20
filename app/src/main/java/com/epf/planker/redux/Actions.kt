@@ -9,3 +9,7 @@ package com.epf.planker.redux
 interface Action
 
 object EndOfFlow : Action
+
+interface RenderAction : Action
+
+object CloseApp: RenderAction

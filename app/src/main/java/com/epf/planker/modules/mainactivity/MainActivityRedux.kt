@@ -31,12 +31,18 @@ sealed class MainActivityEffect : Effect {
     sealed class NavigationEffect : MainActivityEffect() {
         object HandleForwardNavigation : NavigationEffect()
         object HandleBackwardNavigation : NavigationEffect()
+        object Finish : NavigationEffect()
     }
+}
+
+sealed class MainActivityRenderAction : RenderAction {
+    object ShowLoading : MainActivityRenderAction()
+    object UpdateUi : MainActivityRenderAction()
 }
 
 object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
 
-    private val reduce: (String, MainActivityState, MainActivityAction.NavigationAction) -> Pair<MainActivityState, MainActivityEffect.NavigationEffect> =
+    private val reduce: (String, MainActivityState, MainActivityAction.NavigationAction) -> Pair<MainActivityState, Pair<Action, MainActivityEffect.NavigationEffect>> =
         { tag, state, action ->
             val fragment = getFragment(action.fragmentId)
             val screen = Screen(fragment, tag, action.fragmentId)
@@ -47,10 +53,10 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
             val updatedMap = state.screenMap[currentTabId]?.plus(screen) ?: setOf(screen)
             state.screenMap.put(currentTabId, updatedMap)
             val newNavigation = state.navigation.copy(navigationTabId = currentTabId)
-            state.copy(navigation = newNavigation) to MainActivityEffect.NavigationEffect.HandleForwardNavigation
+            state.copy(navigation = newNavigation) to (EndOfFlow to MainActivityEffect.NavigationEffect.HandleForwardNavigation)
         }
 
-    override fun invoke(p1: MainActivityState, p2: Action): Pair<MainActivityState, Effect> {
+    override fun invoke(p1: MainActivityState, p2: Action): Pair<MainActivityState, Pair<Action, Effect>> {
         val navigationTabId = p1.navigation.navigationTabId
         return when (p2) {
             is MainActivityAction.NavigationAction.LaunchScheduleTab -> reduce("ScheduleFragment", p1, p2)
@@ -60,7 +66,7 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
             is MainActivityAction.NavigationAction.OnBack -> {
                 val updatedMap = p1.screenMap[navigationTabId].minus(p1.screenMap[navigationTabId].last())
                 p1.screenMap.put(navigationTabId, updatedMap)
-                p1 to MainActivityEffect.NavigationEffect.HandleBackwardNavigation
+                p1 to (EndOfFlow to MainActivityEffect.NavigationEffect.HandleBackwardNavigation)
 
             }
 
@@ -76,11 +82,11 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
                 )
 
                 val navigation = p1.navigation.copy(commitId = commitId)
-                p1.copy(navigation = navigation) to None
+                p1.copy(navigation = navigation) to (EndOfFlow to None)
             }
 
-            is FragmentAction.Finish -> p1.copy(navigation = p1.navigation.copy(finish = true)) to None
-            else -> p1 to None
+            is FragmentAction.Finish -> p1 to (EndOfFlow to None)
+            else -> p1 to (EndOfFlow to None)
         }
     }
 
@@ -119,7 +125,7 @@ interface NavigationManager {
 class NavigationManagerImpl(private val supportFragmentManager: FragmentManager) : NavigationManager {
     override fun onBack(state: MainActivityState): Action {
         return if (state.screenMap[state.navigation.navigationTabId].isNullOrEmpty()) {
-            FragmentAction.Finish
+            CloseApp
         } else {
             replace(state)
         }

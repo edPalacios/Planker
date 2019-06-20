@@ -1,13 +1,7 @@
 package com.epf.planker.modules.mainactivity.features.home
 
 import android.util.Log
-import com.epf.planker.redux.Action
-import com.epf.planker.redux.EndOfFlow
-import com.epf.planker.redux.Effect
-import com.epf.planker.redux.None
-import com.epf.planker.redux.Interpreter
-import com.epf.planker.redux.Reducer
-import com.epf.planker.redux.State
+import com.epf.planker.redux.*
 import kotlinx.coroutines.*
 
 data class HomeState(val workout: Workout? = null) : State<HomeState>
@@ -29,6 +23,10 @@ sealed class HomeActions : Action {
 
 }
 
+sealed class HomeRenderAction : RenderAction {
+    object UpdateWorkout : HomeRenderAction()
+}
+
 
 sealed class HomeEffect : Effect {
 
@@ -42,14 +40,17 @@ sealed class HomeEffect : Effect {
 
 object HomeReducer : Reducer<HomeState, Action, Effect> {
 
-    override fun invoke(p1: HomeState, p2: Action): Pair<HomeState, Effect> {
+    override fun invoke(p1: HomeState, p2: Action): Pair<HomeState, Pair<Action, Effect>> {
         return when (p2) {
 
             is HomeActions.HomeWorkout.Get -> {
-                p1 to HomeEffect.HomeWorkoutEffect.Load
+                p1 to (EndOfFlow to HomeEffect.HomeWorkoutEffect.Load)
             }
-            is HomeActions.Interpreter.OnSucceed -> p1.copy(workout = p2.workout) to None
-            else -> p1 to None
+            is HomeActions.Interpreter.OnSucceed -> {
+                val state = p1.copy(workout = p2.workout)
+                state to (HomeRenderAction.UpdateWorkout to None)
+            }
+            else -> p1 to (EndOfFlow to None)
         }
     }
 
@@ -60,7 +61,7 @@ object HomeInterpreter : Interpreter<HomeState, Effect, Action> {
 
     override fun invoke(p1: HomeState, p2: Effect): Deferred<List<Action>> {
         return CoroutineScope(Dispatchers.IO).async {
-            Log.d("///////", "Post execution thread:"+Thread.currentThread().name)
+            Log.d("///////", "Post execution thread:" + Thread.currentThread().name)
             listOf(
                 when (p2) {
                     is HomeEffect.HomeWorkoutEffect.Load -> {

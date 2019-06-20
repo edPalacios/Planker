@@ -6,6 +6,7 @@ import android.os.Parcelable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.epf.planker.R
+import com.epf.planker.redux.CloseApp
 import com.epf.planker.redux.MainActivityState
 import com.epf.planker.redux.Store
 import com.epf.planker.redux.Subscriber
@@ -16,19 +17,18 @@ import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
-    private val changeScreen: Subscriber<MainActivityState> = {
-        if (it.navigation.finish) {
-            finish()
+    private val screenSubsbriber: Subscriber<MainActivityState> = { _, renderAction ->
+        when (renderAction) {
+            is CloseApp -> finish()
         }
     }
 
-    private val subscribers = listOf(changeScreen)
     private val state = MainActivityState()
     private val store = Store(
         MainActivityReducer,
         MainActivityInterpreter(NavigationManagerImpl(supportFragmentManager)),
         state,
-        subscribers
+        screenSubsbriber
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
