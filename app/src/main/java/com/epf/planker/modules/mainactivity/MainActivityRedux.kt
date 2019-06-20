@@ -1,6 +1,7 @@
 package com.epf.planker.modules.mainactivity
 
 import androidx.annotation.IdRes
+import androidx.core.util.contains
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import com.epf.planker.R
@@ -16,13 +17,13 @@ sealed class FragmentAction : Action {
 }
 
 sealed class MainActivityAction : Action {
-    sealed class NavigationAction(@IdRes val fragmentId: Int, @IdRes val rootNavigationId: Int?) :
+    sealed class NavigationAction(@IdRes val fragmentId: Int) :
         MainActivityAction() {
-        object LaunchHomeTab : NavigationAction(R.id.navigation_home, R.id.navigation_home)
-        object LaunchCalendarTab : NavigationAction(R.id.navigation_calendar, R.id.navigation_calendar)
-        object LaunchScheduleTab : NavigationAction(R.id.navigation_schedule, R.id.navigation_calendar)
-        object OnBack : NavigationAction(-1, -1)
-        class LaunchInTab(toOpenId: Int) : NavigationAction(toOpenId, null)
+        object LaunchHomeTab : NavigationAction(R.id.navigation_home)
+        object LaunchCalendarTab : NavigationAction(R.id.navigation_calendar)
+        object LaunchScheduleTab : NavigationAction(R.id.navigation_schedule)
+        object OnBack : NavigationAction(-1)
+        class LaunchInTab(toOpenId: Int) : NavigationAction(toOpenId)
     }
 
 }
@@ -47,8 +48,8 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
             val fragment = getFragment(action.fragmentId)
             val screen = Screen(fragment, tag, action.fragmentId)
             val currentTabId = when {
-                action.rootNavigationId == null -> state.navigation.navigationTabId
-                else -> action.rootNavigationId
+                state.screenMap.contains( state.navigation.navigationTabId) -> action.fragmentId
+                else -> state.navigation.navigationTabId
             }
             val updatedMap = state.screenMap[currentTabId]?.plus(screen) ?: setOf(screen)
             state.screenMap.put(currentTabId, updatedMap)
