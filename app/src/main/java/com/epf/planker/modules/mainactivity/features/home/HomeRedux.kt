@@ -48,9 +48,9 @@ object HomeReducer : Reducer<HomeState, Action, Effect> {
             }
             is HomeActions.Interpreter.OnSucceed -> {
                 val state = p1.copy(workout = p2.workout)
-                state to (HomeRenderAction.UpdateWorkout to None)
+                state to (HomeRenderAction.UpdateWorkout to NoEffect)
             }
-            else -> p1 to (EndOfFlow to None)
+            else -> p1 to (EndOfFlow to NoEffect)
         }
     }
 

@@ -83,11 +83,11 @@ object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
                 )
 
                 val navigation = p1.navigation.copy(commitId = commitId)
-                p1.copy(navigation = navigation) to (EndOfFlow to None)
+                p1.copy(navigation = navigation) to (EndOfFlow to NoEffect)
             }
 
-            is FragmentAction.Finish -> p1 to (EndOfFlow to None)
-            else -> p1 to (EndOfFlow to None)
+            is FragmentAction.Finish -> p1 to (EndOfFlow to NoEffect)
+            else -> p1 to (EndOfFlow to NoEffect)
         }
     }
 

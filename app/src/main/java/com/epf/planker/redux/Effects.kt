@@ -7,7 +7,7 @@ package com.epf.planker.redux
  */
 interface Effect
 
-object None : Effect
+object NoEffect : Effect
 
 sealed class DataEffect : Effect {
 
