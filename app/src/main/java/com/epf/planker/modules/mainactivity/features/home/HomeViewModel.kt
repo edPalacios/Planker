@@ -4,8 +4,6 @@ import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.epf.planker.redux.Action
-import com.epf.planker.redux.Effect
 import com.epf.planker.redux.Store
 import com.epf.planker.redux.Subscriber
 import kotlinx.coroutines.CoroutineScope
@@ -13,7 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-class HomeViewModel(private val store: Store<HomeState, Action, Effect>) : ViewModel() {
+class HomeViewModel(private val store: Store<HomeState>) : ViewModel() {
 
     val workoutLiveData = MutableLiveData<Workout>()
 
@@ -48,7 +46,7 @@ class HomeViewModel(private val store: Store<HomeState, Action, Effect>) : ViewM
 }
 
 
-class HomeViewModelFactory(private val store: Store<HomeState, Action, Effect>) : ViewModelProvider.Factory {
+class HomeViewModelFactory(private val store: Store<HomeState>) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {

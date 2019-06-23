@@ -10,19 +10,19 @@ import kotlinx.coroutines.runBlocking
  * notifies uiSubscriber when the (S)tate changes, and calls the interpreter with any (E)ffects that are produced.
  *
  * Interpreter
- * (S, E) -> Future<[A]> (in this case we use a Deferred of something)
+ * (S, E) -> Future<[Action]> (in this case we use a Deferred of something)
  * The interpreter takes the current (S)tate and an (E)ffect and returns an array of (A)ctions.
  * This is the only place side effects can actually occur, up until this point everything is an 'intent' to do something.
  * This is where you would implement storage, logging, network requests, timers, etc...
  */
-class Store<S : State<S>, A : Action, E : Effect>(
-    private val reducer: Reducer<S, A, E>,
-    private val interpreter: Interpreter<S, E, A>,
+class Store<S>(
+    private val reducer: Reducer<S, Action, Effect>,
+    private val interpreter: Interpreter<S, Effect, Action>,
     private var currentState: S,
     private var uiSubscriber: Subscriber<S>? = null
 ) {
 
-    tailrec suspend fun dispatch(action: A, pendingActions: List<A>? = null) {
+    tailrec suspend fun dispatch(action: Action, pendingActions: List<Action>? = null) {
         if (action is EndOfFlow && pendingActions.isNullOrEmpty()) {
             return
         }
@@ -56,7 +56,7 @@ class Store<S : State<S>, A : Action, E : Effect>(
 //        uiSubscriber -= subscriber
 //    }
 
-    fun run(action: A) = CoroutineScope(Dispatchers.Main).launch {
+    fun run(action: Action) = CoroutineScope(Dispatchers.Main).launch {
         dispatch(action)
     }
 }
