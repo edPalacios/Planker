@@ -3,35 +3,55 @@ package com.epf.planker.modules.mainactivity.features.calendar
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.epf.planker.redux.Action
-import com.epf.planker.redux.Effect
+import com.epf.planker.redux.LoadingRenderAction
+import com.epf.planker.redux.Request
 import com.epf.planker.redux.Store
 import com.epf.planker.redux.Subscriber
 import kotlinx.coroutines.Job
 
 
-class CalendarViewModel(store: Store<CalendarState, Action, Effect>) : ViewModel() {
+class CalendarViewModel(private val store: Store<CalendarState>) : ViewModel() {
 
-    private val calendarLiveData = MutableLiveData<CalendarState>()
+    val calendarLiveData = MutableLiveData<CalendarState>()
+    val loadingStateLiveData = MutableLiveData<Boolean>()
 
-    private var jobs: List<Job>? = null
+    private val jobs: List<Job> = listOf()
 
-    private val calendarStateSubscriber: Subscriber<CalendarState> = { state, action ->
-        TODO("update ui not implemented")
+    private val calendarStateSubscriber: Subscriber<CalendarState> = { state, renderAction ->
+        when (renderAction) {
+            LoadingRenderAction.ShowLoading -> {
+                loadingStateLiveData.value = true
+            }
+            LoadingRenderAction.HideLoading -> {
+                loadingStateLiveData.value = false
+            }
+            CalendarRenderAction.UpdateCalendarDates -> {
+                calendarLiveData.value = state
+            }
+
+            CalendarRenderAction.UpdateCurrentDay -> {
+                calendarLiveData.value = state
+            }
+        }
     }
 
     init {
         store.subscribe(calendarStateSubscriber)
-        dispatchGetCalendarScheduledDaystAction()
+        dispatchGetCalendarScheduledDaysAction()
     }
 
-    private fun dispatchGetCalendarScheduledDaystAction() {
+    private fun dispatchGetCalendarScheduledDaysAction() {
+        jobs.plus(store.run(CalendarGet.ScheduledDays))
+    }
 
+    override fun onCleared() {
+        super.onCleared()
+        jobs.forEach { it.cancel() }
     }
 
 }
 
-class CalendarViewModelFactory(private val store: Store<CalendarState, Action, Effect>) : ViewModelProvider.Factory {
+class CalendarViewModelFactory(private val store: Store<CalendarState>) : ViewModelProvider.Factory {
 
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel?> create(modelClass: Class<T>): T {
