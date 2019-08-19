@@ -36,10 +36,6 @@ sealed class MainActivityEffect : Effect {
     }
 }
 
-sealed class MainActivityRenderAction : RenderAction {
-    object ShowLoading : MainActivityRenderAction()
-    object UpdateUi : MainActivityRenderAction()
-}
 
 object MainActivityReducer : Reducer<MainActivityState, Action, Effect> {
 
