@@ -10,6 +10,27 @@ interface Action
 
 object EndOfFlow : Action
 
+object NoAction : Action
+
 interface RenderAction : Action
 
-object CloseApp: RenderAction
+sealed class LoadingRenderAction : RenderAction {
+    object ShowLoading : LoadingRenderAction()
+    object HideLoading : LoadingRenderAction()
+}
+
+
+object CloseApp : RenderAction
+
+// REST actions
+sealed class Request : Action {
+    abstract class Get : Request()
+    abstract class Post : Request()
+    abstract class Put : Request()
+}
+
+sealed class Result<T> : Action {
+    class OnSucceed<T>(val result: T) : Result<T>()
+    class OnError<T>(val result: T) : Result<T>()
+}
+
