@@ -9,16 +9,32 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.epf.planker.R
 import com.epf.planker.modules.mainactivity.features.base.BaseFragment
-import com.epf.planker.modules.mainactivity.features.home.HomeViewModel
+import com.epf.planker.redux.Action
 import com.epf.planker.redux.Store
 import kotlinx.android.synthetic.main.fragment_calendar.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class CalendarFragment : BaseFragment() {
     override fun screenLayout(): Int = R.layout.fragment_calendar
 
+    val ra: (Action) -> Unit = {
+        CoroutineScope(Dispatchers.Main).launch {
+            when (it) {
+                is CalendarRenderAction.InBetweenOperation -> {
+                    println("edu in between operation")
+                    Toast.makeText(requireContext(), "operation $it is done!", Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                }
+            }
+        }
+    }
+
     private val calendarViewModel by lazy {
-        val store = Store(CalendarReducer, CalendarInterpreter, CalendarState())
+        val store = Store(CalendarReducer(ra), CalendarInterpreter, CalendarState())
         ViewModelProviders.of(this, CalendarViewModelFactory(store)).get(CalendarViewModel::class.java)
     }
 
@@ -30,7 +46,7 @@ class CalendarFragment : BaseFragment() {
         })
 
         calendarViewModel.loadingStateLiveData.observe(viewLifecycleOwner, Observer {
-            if(it) progress.visibility = VISIBLE else progress.visibility = GONE
+            if (it) progress.visibility = VISIBLE else progress.visibility = GONE
         })
 
     }

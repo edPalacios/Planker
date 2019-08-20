@@ -18,7 +18,7 @@ sealed class HomeActions : Action {
     }
 
     sealed class Interpreter : HomeActions() {
-        class OnSucceed(val workout: Workout) : Interpreter()
+        class OnSucceed  (val workout: Workout) : Interpreter()
     }
 
 }

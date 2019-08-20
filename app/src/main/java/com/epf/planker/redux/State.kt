@@ -9,6 +9,11 @@ import com.epf.planker.modules.mainactivity.features.home.HomeFragment
 
 interface State<S>
 
+sealed class LoadingState : State<Any> {
+    object Show: LoadingState()
+    object Hide: LoadingState()
+}
+
 data class MainActivityState(
     val screenMap: SparseArray<Set<Screen>> = SparseArray(),
     val navigation: Navigation = Navigation()
